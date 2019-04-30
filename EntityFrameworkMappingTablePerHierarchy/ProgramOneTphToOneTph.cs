@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-using Z.EntityFramework.Extensions;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
@@ -125,9 +125,13 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 
         public class TestContext : DbContext
         {
-            static TestContext() { EntityFrameworkManager.ContextFactory = (c) => c; }
+            private readonly bool _applyWithColumnTypeBigintToDiscriminator;
 
-            public TestContext(DbContextOptions options) : base(options) { }
+            public TestContext(DbContextOptions options, bool applyWithColumnTypeBigintToDiscriminator) :
+                base(options)
+            {
+                _applyWithColumnTypeBigintToDiscriminator = applyWithColumnTypeBigintToDiscriminator;
+            }
 
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -176,7 +180,13 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                         .HasValue<BadChild>(ParentChildDiscriminator.Bad);
 
                     // Based on: https://docs.microsoft.com/en-us/ef/core/modeling/value-conversions#configuring-a-value-converter
-                    builder.Property(e => e.Discriminator).HasColumnType("bigint")
+                    var discriminator = builder.Property(e => e.Discriminator);
+                    if (_applyWithColumnTypeBigintToDiscriminator)
+                    {
+                        discriminator = discriminator.HasColumnType("bigint");
+                    }
+
+                    discriminator
                         .HasConversion(
                             v => v.ToString(),
                             v => (ParentChildDiscriminator) Enum.Parse(typeof(ParentChildDiscriminator), v));
@@ -214,13 +224,19 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 
         private static readonly Func<string> Random30Characters = () => Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 30);
 
-        [Fact]
-        public static void One_TablePerHierarchy_To_One_TablePerHierarchy()
+        public static IEnumerable<object[]> ShouldSucceedRegardlessOfTrueOrFalseInput()
+        {
+            return new List<object[]>() { new object[] { true }, new object[] { false } };
+        }
+
+        [Theory]
+        [MemberData(nameof(ShouldSucceedRegardlessOfTrueOrFalseInput))]
+        public static void One_TablePerHierarchy_To_One_TablePerHierarchy(bool applyColumnType)
         {
             var options = new DbContextOptionsBuilder()
-                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(ProgramOneTphToOneTph)};Integrated Security=SSPI;").Options;
+                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(ProgramOneTphToOneTph)}_{applyColumnType};Integrated Security=SSPI;").Options;
 
-            using (var db = new TestContext(options))
+            using (var db = new TestContext(options, applyColumnType))
             {
                 db.Database.EnsureDeleted();
                 db.Database.EnsureCreated();

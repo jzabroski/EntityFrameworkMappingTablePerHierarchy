@@ -1,7 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-using Z.EntityFramework.Extensions;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
@@ -75,7 +74,6 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 
         public class TestContext : DbContext
         {
-            static TestContext() { EntityFrameworkManager.ContextFactory = (c) => c; }
 
             public TestContext(DbContextOptions options) : base(options) { }
 

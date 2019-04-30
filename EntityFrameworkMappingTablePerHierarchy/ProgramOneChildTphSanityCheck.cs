@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-using Z.EntityFramework.Extensions;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
@@ -43,9 +42,8 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
         public class TestContext : DbContext
         {
             private readonly bool _applyWithColumnTypeBigintToDiscriminator;
-            //static TestContext() { EntityFrameworkManager.ContextFactory = (c) => c; }
 
-            public TestContext(DbContextOptions options, bool applyWithColumnTypeBigintToDiscriminator = false) :
+            public TestContext(DbContextOptions options, bool applyWithColumnTypeBigintToDiscriminator) :
                 base(options)
             {
                 _applyWithColumnTypeBigintToDiscriminator = applyWithColumnTypeBigintToDiscriminator;
@@ -98,17 +96,17 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 
         private static readonly Func<string> Random30Characters = () => Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 30);
 
-        public static IEnumerable<object[]> ShouldBeTrueRegardlessOfTrueOrFalseInput()
+        public static IEnumerable<object[]> ShouldSucceedRegardlessOfTrueOrFalseInput()
         {
             return new List<object[]>() { new object[] {true}, new object[] {false}};
         }
 
         [Theory]
-        [MemberData(nameof(ShouldBeTrueRegardlessOfTrueOrFalseInput))]
+        [MemberData(nameof(ShouldSucceedRegardlessOfTrueOrFalseInput))]
         public static void One_Child_TablePerHierarchy_SanityCheck(bool applyColumnType)
         {
             var options = new DbContextOptionsBuilder()
-                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(ProgramOneChildTphSanityCheck)};Integrated Security=SSPI;").Options;
+                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(ProgramOneChildTphSanityCheck)}_{applyColumnType};Integrated Security=SSPI;").Options;
 
             using (var db = new TestContext(options, applyColumnType))
             {
