@@ -8,3 +8,51 @@ Core concerns are:
 - Can I [reference a TPH twice in the same entity](https://github.com/aspnet/EntityFrameworkCore/issues/5001)?
 - Can I have One TPH with a foreign key to one TPH leaf entity?
 - Why are all my exceptions occurring on `IDatabaseCreator.EnsureDeleted`?
+
+# Domain Model
+
+This project started off as an attempt to model a specific domain model using a non-trivial Table-Per-Hierarchy.
+
+## C# Class Diagram
+
+```
+    .--------------------------------------------.     .----------------------------------------------.
+    |  ParentBase <abstract>                     |     | ChildBase <abstract>                         |
+    +--------------------------------------------+     +----------------------------------------------+
+    | Id : long                                  |     | Id : long                                    |
+    '--------------------------------------------'     '----------------------------------------------'
+        |                                     |            |                                      |
+       \|/                                   \|/          \|/                                    \|/
+.-------------------------. .------------------------. .------------------------. .-----------------------.
+| GoodParent              | | BadParent              | | GoodChild              | | BadChild              |
++-------------------------+ +------------------------+ +------------------------+ +-----------------------+
+| Child : GoodChild       | | Child : BadChild       | | Parent : GoodParent    | | Parent : BadParent    |
+| GoodParentData : string | | BadParentData : string | | GoodChildData : string | | BadChildData : string |
+'-------------------------' '------------------------' '------------------------' '-----------------------'
+```
+
+## Sql Schema
+
+```
+.--------------------------------.
+|  Parent                        |
++--------------------------------+
+| ParentID       : bigint        |
+| Discriminator  : bigint        |
+| GoodParentData : varchar       |
+| BadParentData  : varchar       |
+'--------------------------------'
+                | 1
+                |
+                | 0..1
+.--------------------------------.
+|  Child                         |
++--------------------------------+
+| ChildId        : bigint        |
+| ParentId       : bigint        |
+| Discriminator  : bigint        |
+| GoodChildData  : varchar       |
+| BadChildData   : varchar       |
+'--------------------------------'                                                         
+```
+
