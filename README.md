@@ -9,6 +9,10 @@ Core concerns are:
 - Can I have One TPH with a foreign key to one TPH leaf entity?
 - Why are all my exceptions occurring on `IDatabaseCreator.EnsureDeleted`?
 
+# Findings So Far
+
+1. `System.InvalidOperationException` messages related to type mapping seem to be raised in the order of lexicographic name of the type.  It's probably the full name and not just the short name.
+
 # Domain Model
 
 This project started off as an attempt to model a specific domain model using a non-trivial Table-Per-Hierarchy.
