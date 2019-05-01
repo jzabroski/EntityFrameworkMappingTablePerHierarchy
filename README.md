@@ -12,6 +12,7 @@ Core concerns are:
 # Findings So Far
 
 1. `System.InvalidOperationException` messages related to type mapping seem to be raised in the order of lexicographic name of the type.  It's probably the full name and not just the short name.
+2. Testing mappings appears to be non-thread-safe.  That is, if you register the same type in two different context instances, even if those contexts connect to two separate databases, the component internal to EF called the "snapshot generator" appears to be a global variable of sorts. - Need to better understand exactly what is going on here.
 
 # Domain Model
 
