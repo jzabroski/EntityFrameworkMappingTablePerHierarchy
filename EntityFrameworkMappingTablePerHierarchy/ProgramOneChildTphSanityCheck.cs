@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
 using Xunit;
+using static Microsoft.EntityFrameworkCore.TablePerHierarchy.Helper;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
@@ -17,6 +16,7 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
         private abstract class ChildBase
         {
             public virtual int Id { get; set; }
+            
             public ParentChildDiscriminator Discriminator { get; protected set; }
         }
 
@@ -56,7 +56,7 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                 #region ChildBase
                 {
                     var builder = modelBuilder.Entity<ChildBase>();
-                    builder.HasDiscriminator(x => x.Discriminator)
+                    builder.HasDiscriminator<ParentChildDiscriminator>(nameof(ChildBase.Discriminator))
                         .HasValue<GoodChild>(ParentChildDiscriminator.Good)
                         .HasValue<BadChild>(ParentChildDiscriminator.Bad);
 
@@ -70,31 +70,34 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                     discriminator.HasConversion(
                             v => v.ToString(),
                             v => (ParentChildDiscriminator) Enum.Parse(typeof(ParentChildDiscriminator), v));
+                    
 
                     // HACK
                     //builder.Property(x => x.Discriminator).HasConversion<long>().HasColumnType("BIGINT"); 
                 }
                 #endregion
 
-                #region GoodChild
+                #region BadChild
                 {
-                    var builder = modelBuilder.Entity<GoodChild>();
-                    builder
+                    var builder = modelBuilder.Entity<BadChild>(
+                        b => b.Property(nameof(BadChild.BadChildData)).HasColumnName("BadChildData"));
+                    modelBuilder.Entity<BadChild>()
                         .HasBaseType<ChildBase>();
+                    //builder.Ignore(typeof(ParentChildDiscriminator));
                 }
                 #endregion
 
-                #region BadChild
+                #region GoodChild
                 {
-                    var builder = modelBuilder.Entity<BadChild>();
-                    builder
+                    var builder = modelBuilder.Entity<GoodChild>(
+                        b => b.Property(nameof(GoodChild.GoodChildData)).HasColumnName("GoodChildData"));
+                    modelBuilder.Entity<GoodChild>()
                         .HasBaseType<ChildBase>();
+                    //builder.Ignore(typeof(ParentChildDiscriminator));
                 }
                 #endregion
             }
         }
-
-        private static readonly Func<string> Random30Characters = () => Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 30);
 
         public static IEnumerable<object[]> ShouldSucceedRegardlessOfTrueOrFalseInput()
         {
@@ -118,7 +121,7 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 
                 db.Add(goodChild);
 
-                var badChild = new BadChild() {BadChildData = Random30Characters()};
+                var badChild = new BadChild() {};
 
                 db.Add(badChild);
 

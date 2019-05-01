@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Collections.Generic;
 using Xunit;
+using static Microsoft.EntityFrameworkCore.TablePerHierarchy.Helper;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
@@ -98,14 +97,14 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
         private abstract class ChildBase
         {
             public virtual int Id { get; set; }
-            public ParentChildDiscriminator Discriminator { get; protected set; }
+            public ParentChildDiscriminator ChildDiscriminator { get; protected set; }
         }
 
         private class GoodChild : ChildBase
         {
             public GoodChild()
             {
-                Discriminator = ParentChildDiscriminator.Good;
+                ChildDiscriminator = ParentChildDiscriminator.Good;
             }
             public virtual GoodParent Parent { get; set; }
 
@@ -116,7 +115,7 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
         {
             public BadChild()
             {
-                Discriminator = ParentChildDiscriminator.Bad;
+                ChildDiscriminator = ParentChildDiscriminator.Bad;
             }
 
             public virtual BadParent Parent { get; set; }
@@ -175,54 +174,62 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                 #region ChildBase
                 {
                     var builder = modelBuilder.Entity<ChildBase>();
-                    builder.HasDiscriminator(x => x.Discriminator)
+                    builder.HasDiscriminator(x => x.ChildDiscriminator)
                         .HasValue<GoodChild>(ParentChildDiscriminator.Good)
                         .HasValue<BadChild>(ParentChildDiscriminator.Bad);
 
                     // Based on: https://docs.microsoft.com/en-us/ef/core/modeling/value-conversions#configuring-a-value-converter
-                    var discriminator = builder.Property(e => e.Discriminator);
+                    var discriminator = builder.Property(e => e.ChildDiscriminator);
                     if (_applyWithColumnTypeBigintToDiscriminator)
                     {
                         discriminator = discriminator.HasColumnType("bigint");
                     }
 
-                    discriminator
-                        .HasConversion(
-                            v => v.ToString(),
-                            v => (ParentChildDiscriminator) Enum.Parse(typeof(ParentChildDiscriminator), v));
+                    // This commented out code won't work:
+                    //discriminator
+                    //    .HasConversion(
+                    //        v => v.ToString(),
+                    //        v => (ParentChildDiscriminator)Enum.Parse(typeof(ParentChildDiscriminator), v));
 
                     // HACK
-                    //builder.Property(x => x.Discriminator).HasConversion<long>().HasColumnType("BIGINT"); 
+                    builder.Property(x => x.ChildDiscriminator).HasConversion<long>();//.HasColumnType("BIGINT"); 
                 }
                 #endregion
 
                 #region GoodChild
                 {
-                    var builder = modelBuilder.Entity<GoodChild>();
-                    builder
+                    var builder = modelBuilder.Entity<GoodChild>(
+                        b =>
+                        {
+                            b.Property(nameof(GoodChild.GoodChildData)).HasColumnName("GoodChildData");
+                            b
+                                .HasOne(e => e.Parent)
+                                .WithOne(e => e.Child)
+                                .HasForeignKey<GoodChild>();
+                        });
+                    modelBuilder.Entity<GoodChild>()
                         .HasBaseType<ChildBase>();
-                    builder
-                        .HasOne(e => e.Parent)
-                        .WithOne(e => e.Child)
-                        .HasForeignKey<GoodChild>("ChildId");
+                    
                 }
                 #endregion
 
                 #region BadChild
                 {
-                    var builder = modelBuilder.Entity<BadChild>();
-                    builder
+                    var builder = modelBuilder.Entity<BadChild>(
+                        b =>
+                        {
+                            b.Property(nameof(BadChild.BadChildData)).HasColumnName("BadChildData");
+                            b
+                                .HasOne(e => e.Parent)
+                                .WithOne(e => e.Child)
+                                .HasForeignKey<BadChild>();
+                        });
+                    modelBuilder.Entity<BadChild>()
                         .HasBaseType<ChildBase>();
-                    builder
-                        .HasOne(e => e.Parent)
-                        .WithOne(e => e.Child)
-                        .HasForeignKey<BadChild>("ChildId");
                 }
                 #endregion
             }
         }
-
-        private static readonly Func<string> Random30Characters = () => Guid.NewGuid().ToString().Replace("-", string.Empty).Substring(0, 30);
 
         public static IEnumerable<object[]> ShouldSucceedRegardlessOfTrueOrFalseInput()
         {
@@ -236,11 +243,12 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
             var options = new DbContextOptionsBuilder()
                 .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(ProgramOneTphToOneTph)}_{applyColumnType};Integrated Security=SSPI;").Options;
 
+
             using (var db = new TestContext(options, applyColumnType))
             {
                 db.Database.EnsureDeleted();
                 db.Database.EnsureCreated();
-
+                
                 // TODO write save logic
                 var goodParent = new GoodParent()
                 {

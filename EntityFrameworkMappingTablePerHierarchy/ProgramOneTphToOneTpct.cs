@@ -1,6 +1,5 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
-using Xunit;
+﻿using Xunit;
+using static Microsoft.EntityFrameworkCore.TablePerHierarchy.Helper;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
@@ -114,8 +113,6 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 
             }
         }
-
-        private static readonly Func<string> Random30Characters = () => Guid.NewGuid().ToString().Replace("-",string.Empty).Substring(0, 30);
 
         [Fact]
         public static void One_TablePerHierarchy_to_One_TablePerConcreteType()

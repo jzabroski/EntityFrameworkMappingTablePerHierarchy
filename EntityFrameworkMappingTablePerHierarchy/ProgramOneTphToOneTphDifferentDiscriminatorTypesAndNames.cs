@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
