@@ -11,6 +11,7 @@ Core concerns are:
         - WILL WORK: `HasDiscriminator(x => x.DiscriminatorEnum)`
         - WILL WORK: `HasDiscriminator<TEntity>(nameof(TEntity.DiscriminatorEnum))`
     - You cannot combine `discriminator.HasColumnType("bigint")` with `discriminator.HasConversion(v => v.ToString(), v => (ChildDiscriminator)Enum.Parse(typeof(ChildDiscriminator), v));`
+        - Instead, use: `builder.Property(x => x.ChildDiscriminator).HasConversion<long>().HasColumnType("BIGINT");`
         - Doing so will yield the following error:
         ```
         System.InvalidOperationException : The property 'BadChild.ChildDiscriminator' is of type 'ParentChildDiscriminator' which is not supported by current database provider. Either change the property CLR type or ignore the property using the '[NotMapped]' attribute or by using 'EntityTypeBuilder.Ignore' in 'OnModelCreating'.
