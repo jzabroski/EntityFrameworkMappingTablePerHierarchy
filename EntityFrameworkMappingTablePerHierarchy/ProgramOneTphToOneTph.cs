@@ -97,14 +97,14 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
         private abstract class ChildBase
         {
             public virtual int Id { get; set; }
-            public ParentChildDiscriminator ChildDiscriminator { get; protected set; }
+            public ParentChildDiscriminator Discriminator { get; protected set; }
         }
 
         private class GoodChild : ChildBase
         {
             public GoodChild()
             {
-                ChildDiscriminator = ParentChildDiscriminator.Good;
+                Discriminator = ParentChildDiscriminator.Good;
             }
             public virtual GoodParent Parent { get; set; }
 
@@ -115,7 +115,7 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
         {
             public BadChild()
             {
-                ChildDiscriminator = ParentChildDiscriminator.Bad;
+                Discriminator = ParentChildDiscriminator.Bad;
             }
 
             public virtual BadParent Parent { get; set; }
@@ -142,9 +142,6 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                     builder.HasDiscriminator(x => x.Discriminator)
                         .HasValue<GoodParent>(ParentDiscriminator.Good)
                         .HasValue<BadParent>(ParentDiscriminator.Bad);
-
-                    //builder.Property(x => x.Discriminator)
-                    //    .HasColumnName("DiscriminatorId");
                 }
                 #endregion
 
@@ -174,25 +171,19 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                 #region ChildBase
                 {
                     var builder = modelBuilder.Entity<ChildBase>();
-                    builder.HasDiscriminator(x => x.ChildDiscriminator)
+                    builder.HasDiscriminator(x => x.Discriminator)
                         .HasValue<GoodChild>(ParentChildDiscriminator.Good)
                         .HasValue<BadChild>(ParentChildDiscriminator.Bad);
 
                     // Based on: https://docs.microsoft.com/en-us/ef/core/modeling/value-conversions#configuring-a-value-converter
-                    var discriminator = builder.Property(e => e.ChildDiscriminator);
+                    var discriminator = builder.Property(e => e.Discriminator);
                     if (_applyWithColumnTypeBigintToDiscriminator)
                     {
                         discriminator = discriminator.HasColumnType("bigint");
                     }
 
-                    // This commented out code won't work:
-                    //discriminator
-                    //    .HasConversion(
-                    //        v => v.ToString(),
-                    //        v => (ParentChildDiscriminator)Enum.Parse(typeof(ParentChildDiscriminator), v));
-
                     // HACK
-                    builder.Property(x => x.ChildDiscriminator).HasConversion<long>();//.HasColumnType("BIGINT"); 
+                    //builder.Property(x => x.Discriminator).HasConversion<long>();//.HasColumnType("BIGINT"); 
                 }
                 #endregion
 
