@@ -46,6 +46,12 @@ Core concerns are:
 2. Testing mappings appears to be non-thread-safe.  That is, if you register the same type in two different context instances, even if those contexts connect to two separate databases, the component internal to EF called the "snapshot generator" appears to be a global variable of sorts. - Need to better understand exactly what is going on here.
 3. The documentation on adding a ValueConverter for an enum appears to be incorrect (or I am typing in the example wrong when translating it to my own sample): https://docs.microsoft.com/en-us/ef/core/modeling/value-conversions#configuring-a-value-converter
 
+Additional things discovered:
+- Escaped Defects Fixed At Some Point in EntityFrameworkCore history:
+    - https://github.com/aspnet/EntityFrameworkCore/issues/4170
+    - https://github.com/aspnet/EntityFrameworkCore/issues/4071
+    - https://github.com/aspnet/EntityFrameworkCore/pull/4958
+
 # Domain Model
 
 This project started off as an attempt to model a specific domain model using a non-trivial Table-Per-Hierarchy.
