@@ -7,12 +7,13 @@ using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
-    public class GH15666
+    public class GH15666_Explicit
     {
         private class Counterparty
         {
             public virtual long Id { get; set; }
             public virtual string Name { get; set; }
+            public virtual  FollowUpInteraction FollowUpInteraction { get; set; }
         }
         private class FollowUpInteraction
         {
@@ -45,7 +46,7 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                     builder.HasKey(x => x.Id);
                     builder.Property(x => x.Id).HasColumnName("FollowUpInteractionId");
                     builder.HasOne(x => x.InteractedWithCounterparty)
-                        .WithOne() // missing a relationship here ruins the mapping
+                        .WithOne(x => x.FollowUpInteraction) // missing a relationship here ruins the mapping
                         .HasForeignKey<FollowUpInteraction>("InteractedCounterPartyId");
                 });
             }
@@ -59,10 +60,10 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
         }
 
         [Fact]
-        public static void Should_not_throw_InvalidOperationException_when_using_enum_as_discriminator()
+        public static void Should_not_throw_DbUpdateException()
         {
             var options = new DbContextOptionsBuilder()
-                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(GH15666)};Integrated Security=SSPI;").Options;
+                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(GH15666_Explicit)};Integrated Security=SSPI;").Options;
 
             using (var db = new TestContext(options))
             {
