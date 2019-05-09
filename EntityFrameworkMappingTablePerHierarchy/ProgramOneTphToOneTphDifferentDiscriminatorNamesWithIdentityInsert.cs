@@ -3,21 +3,26 @@ using static Microsoft.EntityFrameworkCore.TablePerHierarchy.Helper;
 
 namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
 {
-    public class ProgramOneTphToOneTphDifferentDiscriminatorNames
+    public class ProgramOneTphToOneTphDifferentDiscriminatorNamesWithIdentityInsert
     {
-        private enum ParentDiscriminator
+        private enum ParentDiscriminator : long
         {
             Good = 1,
             Bad = 2
         }
-        private enum ParentChildDiscriminator
+        private enum ParentChildDiscriminator : long
         {
             Good = 1,
             Bad = 2
         }
-        private abstract class ParentBase
+        private abstract class EntityBaseBase { }
+        private abstract class EntityBase : EntityBaseBase
         {
-            public virtual int Id { get; set; }
+            public virtual long Id { get; set; }
+        }
+        private abstract class ParentBase : EntityBase
+        {
+            //public virtual long Id { get; set; }
 
             public ParentDiscriminator Discriminator { get; protected set; }
         }
@@ -43,9 +48,9 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
             public virtual string BadParentData { get; set; }
         }
 
-        private abstract class ChildBase
+        private abstract class ChildBase : EntityBase
         {
-            public virtual int Id { get; set; }
+            //public virtual long Id { get; set; }
             public ParentChildDiscriminator ChildDiscriminator { get; protected set; }
         }
 
@@ -83,6 +88,7 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                 #region ParentBase
                 {
                     var builder = modelBuilder.Entity<ParentBase>();
+                    builder.Property<long>(x => x.Id).UseSqlServerIdentityColumn<long>().ValueGeneratedOnAdd();
                     builder.HasDiscriminator(x => x.Discriminator)
                         .HasValue<GoodParent>(ParentDiscriminator.Good)
                         .HasValue<BadParent>(ParentDiscriminator.Bad);
@@ -118,11 +124,10 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                 #region ChildBase
                 {
                     var builder = modelBuilder.Entity<ChildBase>();
+                    builder.Property<long>(x => x.Id).UseSqlServerIdentityColumn<long>().ValueGeneratedOnAdd();
                     builder.HasDiscriminator(x => x.ChildDiscriminator)
                         .HasValue<GoodChild>(ParentChildDiscriminator.Good)
                         .HasValue<BadChild>(ParentChildDiscriminator.Bad);
-
-                   // builder.Property(x => x.ChildDiscriminator).HasConversion<long>().HasColumnType("BIGINT"); // HACK
                 }
                 #endregion
 
@@ -131,10 +136,11 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                     var builder = modelBuilder.Entity<GoodChild>();
                     builder
                         .HasBaseType<ChildBase>();
+                    builder.Property<long>("ParentId").HasColumnName("ParentId");
                     builder
                         .HasOne(e => e.Parent)
                         .WithOne(e => e.Child)
-                        .HasForeignKey<GoodChild>("ChildId");
+                        .HasForeignKey<GoodChild>("ParentId").OnDelete(DeleteBehavior.ClientSetNull);
                 }
                 #endregion
 
@@ -143,20 +149,21 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                     var builder = modelBuilder.Entity<BadChild>();
                     builder
                         .HasBaseType<ChildBase>();
+                    builder.Property<long>("ParentId").HasColumnName("ParentId");
                     builder
                         .HasOne(e => e.Parent)
                         .WithOne(e => e.Child)
-                        .HasForeignKey<BadChild>("ChildId");
+                        .HasForeignKey<BadChild>("ParentId").OnDelete(DeleteBehavior.ClientSetNull);
                 }
                 #endregion
             }
         }
 
         [Fact]
-        public static void One_TablePerHierarchy_To_One_TablePerHierarchy_Different_Discriminator_Names()
+        public static void One_TablePerHierarchy_To_One_TablePerHierarchy_Different_Discriminator_Names_With_Identity_Insert()
         {
             var options = new DbContextOptionsBuilder()
-                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(ProgramOneTphToOneTphDifferentDiscriminatorNames)};Integrated Security=SSPI;").Options;
+                .UseSqlServer($"Data Source=(local);Initial Catalog=Test_{nameof(ProgramOneTphToOneTphDifferentDiscriminatorNamesWithIdentityInsert)};Integrated Security=SSPI;").Options;
 
             using (var db = new TestContext(options))
             {
@@ -167,6 +174,10 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                 var goodChild = new GoodChild() { Parent = new GoodParent() { }, GoodChildData = Random30Characters() };
 
                 db.Add(goodChild);
+
+                var badChild = new BadChild() { Parent = new BadParent() { }, BadChildData = Random30Characters() };
+
+                db.Add(badChild);
 
                 var goodParent = new GoodParent()
                 {

@@ -181,9 +181,6 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                     {
                         discriminator = discriminator.HasColumnType("bigint");
                     }
-
-                    // HACK
-                    //builder.Property(x => x.Discriminator).HasConversion<long>();//.HasColumnType("BIGINT"); 
                 }
                 #endregion
 
@@ -200,7 +197,6 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                         });
                     modelBuilder.Entity<GoodChild>()
                         .HasBaseType<ChildBase>();
-                    
                 }
                 #endregion
 
@@ -241,6 +237,10 @@ namespace Microsoft.EntityFrameworkCore.TablePerHierarchy
                 db.Database.EnsureCreated();
                 
                 // TODO write save logic
+                var goodChild = new GoodChild() { Parent = new GoodParent() { }, GoodChildData = Random30Characters()};
+
+                db.Add(goodChild);
+
                 var goodParent = new GoodParent()
                 {
                     Child = new GoodChild() { GoodChildData = Random30Characters() },
